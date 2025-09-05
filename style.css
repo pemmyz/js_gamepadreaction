@@ -1,147 +1,83 @@
-/* Define CSS variables for theming */
+/* --- Theming Variables --- */
 :root {
-    /* Default: Light Mode */
-    --bg-color: #f0f0f0;
-    --text-color: #333;
-    --container-bg: white;
-    --container-border: #ccc;
-    --container-shadow: rgba(0,0,0,0.1);
-    --secondary-border-color: #ddd; /* For dashed border, hint border */
-    --led-bg: white;
-    --led-border: black;
-    --hint-text-color: #666;
-    --toggle-button-bg: #e9e9e9;
-    --toggle-button-text: #333;
-    --toggle-button-border: #ccc;
-    --led-active-bg: red;
-    --gamepad-detected-color: #28a745;
+    --bg-color: #f0f0f0; --text-color: #333; --container-bg: white; --container-border: #ccc;
+    --container-shadow: rgba(0,0,0,0.1); --secondary-border-color: #ddd; --led-bg: white; --led-border: black;
+    --hint-text-color: #666; --toggle-button-bg: #e9e9e9; --toggle-button-text: #333;
+    --toggle-button-border: #ccc; --led-active-bg: #ff3838; --gamepad-detected-color: #28a745;
     --gamepad-not-detected-color: #dc3545;
-}
 
+    /* Player Colors */
+    --p1-color: #007bff; --p2-color: #28a745; --p3-color: #ffc107; --p4-color: #dc3545;
+}
 body.dark-mode {
-    /* Dark Mode Overrides */
-    --bg-color: #121212;
-    --text-color: #e0e0e0;
-    --container-bg: #1e1e1e;
-    --container-border: #333;
-    --container-shadow: rgba(255,255,255,0.05);
-    --secondary-border-color: #2a2a2a;
-    --led-bg: #2c2c2c;
-    --led-border: #777;
-    --hint-text-color: #aaa;
-    --toggle-button-bg: #3a3a3a;
-    --toggle-button-text: #e0e0e0;
-    --toggle-button-border: #555;
+    --bg-color: #121212; --text-color: #e0e0e0; --container-bg: #1e1e1e; --container-border: #333;
+    --container-shadow: rgba(255,255,255,0.05); --secondary-border-color: #2a2a2a; --led-bg: #2c2c2c;
+    --led-border: #777; --hint-text-color: #aaa; --toggle-button-bg: #3a3a3a;
+    --toggle-button-text: #e0e0e0; --toggle-button-border: #555;
 }
-
+/* --- Basic Setup --- */
 body {
-    font-family: Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    padding-top: 20px;
-    transition: background-color 0.3s, color 0.3s;
+    font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; margin: 0; background-color: var(--bg-color); color: var(--text-color);
+    padding: 20px; box-sizing: border-box; transition: background-color 0.3s, color 0.3s;
 }
-
 #themeToggle {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    padding: 8px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    background-color: var(--toggle-button-bg);
-    color: var(--toggle-button-text);
-    border: 1px solid var(--toggle-button-border);
-    font-size: 0.9em;
-    z-index: 100;
-    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    position: absolute; top: 15px; right: 15px; padding: 8px 12px; border-radius: 5px; cursor: pointer;
+    background-color: var(--toggle-button-bg); color: var(--toggle-button-text); border: 1px solid var(--toggle-button-border);
+    font-size: 0.9em; z-index: 100; transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
-
 #game-container {
-    width: 800px;
-    min-height: 600px;
-    background-color: var(--container-bg);
-    border: 1px solid var(--container-border);
-    box-shadow: 0 0 10px var(--container-shadow);
-    padding: 20px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    margin-top: 10px;
+    width: 95%; max-width: 1200px; background-color: var(--container-bg); border: 1px solid var(--container-border);
+    box-shadow: 0 0 10px var(--container-shadow); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column;
 }
 
-#stats-area p {
-    margin: 5px 0;
-    font-size: 14px;
-    color: var(--text-color);
-}
-
-#gamepad-status.connected {
-    color: var(--gamepad-detected-color);
-    font-weight: bold;
-}
-#gamepad-status.disconnected {
-    color: var(--gamepad-not-detected-color);
-}
-
-
-#visual-led-area {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    margin: 40px 0;
-    padding: 20px;
-    border: 1px dashed var(--secondary-border-color);
+/* --- Player Stats Area --- */
+#players-stats-container {
+    display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;
     min-height: 150px;
 }
-
-.led-button-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
+.player-stats {
+    border: 2px solid var(--secondary-border-color); padding: 10px; border-radius: 8px; flex-grow: 1; min-width: 250px;
+    transition: border-color 0.3s;
 }
+.player-stats h3 { margin: 0 0 10px 0; text-align: center; }
+.player-stats p { margin: 4px 0; font-size: 14px; }
+.player-stats .stat-highlight { font-weight: bold; font-size: 1.1em; }
+/* Player-specific colors */
+#player-1 .player-header, #player-1 { border-color: var(--p1-color); } #player-1 .player-header { color: var(--p1-color); }
+#player-2 .player-header, #player-2 { border-color: var(--p2-color); } #player-2 .player-header { color: var(--p2-color); }
+#player-3 .player-header, #player-3 { border-color: var(--p3-color); } #player-3 .player-header { color: var(--p3-color); }
+#player-4 .player-header, #player-4 { border-color: var(--p4-color); } #player-4 .player-header { color: var(--p4-color); }
 
+/* --- Visual LED Area (Diamond Layout using CSS Grid) --- */
+#visual-led-area {
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    justify-items: center; align-items: center; max-width: 400px; margin: 20px auto;
+    height: 300px; width: 100%;
+}
 .led-visual {
-    width: 100px;
-    height: 100px;
-    background-color: var(--led-bg);
-    border: 5px solid var(--led-border);
-    border-radius: 50%;
-    transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
-    cursor: pointer;
+    width: 80px; height: 80px; background-color: var(--led-bg); border: 5px solid var(--led-border);
+    border-radius: 50%; transition: background-color 0.1s ease-in-out, transform 0.1s;
 }
+#led-North { grid-area: 1 / 2 / 2 / 3; }
+#led-West  { grid-area: 2 / 1 / 3 / 2; }
+#led-East  { grid-area: 2 / 3 / 3 / 4; }
+#led-South { grid-area: 3 / 2 / 4 / 3; }
 
-.led-visual.active {
-    background-color: var(--led-active-bg);
-}
+/* Active LED state (for individual players) */
+.led-visual.active.p1 { background-color: var(--p1-color); transform: scale(1.1); }
+.led-visual.active.p2 { background-color: var(--p2-color); transform: scale(1.1); }
+.led-visual.active.p3 { background-color: var(--p3-color); transform: scale(1.1); }
+.led-visual.active.p4 { background-color: var(--p4-color); transform: scale(1.1); }
 
+/* --- Message and Hint Areas --- */
 #message-area {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 18px;
-    min-height: 50px;
-    color: var(--text-color);
+    text-align: center; font-size: 20px; min-height: 30px; font-weight: bold; margin: 10px 0;
 }
-
-#message-area #pause-message {
-    font-weight: bold;
-}
-
 #hint-area {
-    margin-top: auto;
-    padding-top: 20px;
-    border-top: 1px solid var(--secondary-border-color);
-    font-size: 14px; /* Increased for readability */
-    color: var(--hint-text-color);
-    line-height: 1.6;
+    margin-top: auto; padding-top: 15px; border-top: 1px solid var(--secondary-border-color);
+    font-size: 14px; color: var(--hint-text-color); text-align: center;
 }
-
-#hint-area p {
-    margin: 4px 0;
-}
+#hint-area p { margin: 4px 0; }
+#gamepad-status.connected { color: var(--gamepad-detected-color); font-weight: bold; }
+#gamepad-status.disconnected { color: var(--gamepad-not-detected-color); }
