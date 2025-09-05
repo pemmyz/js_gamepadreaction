@@ -85,9 +85,17 @@ Global area shows:
 
 ---
 
-## 🖥️ How to Run
+## 💡 Future Ideas
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/yourusername/universal-reaction-challenge.git
-   cd universal-reaction-challenge
+- 🎵 Retro sound effects & background music  
+- 🌍 Online multiplayer mode  
+- 📱 Mobile touch support  
+- 🐸 Secret "AMIGAAA!" Frog Mode  
+
+---
+
+## 📜 License
+
+**MIT License**  
+Free to use, modify, and share.
+
