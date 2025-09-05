@@ -27,22 +27,25 @@ body {
     font-size: 0.9em; z-index: 100; transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 #game-container {
-    width: 95%; max-width: 1200px; background-color: var(--container-bg); border: 1px solid var(--container-border);
+    width: 95%; max-width: 1400px; background-color: var(--container-bg); border: 1px solid var(--container-border);
     box-shadow: 0 0 10px var(--container-shadow); padding: 20px; box-sizing: border-box; display: flex; flex-direction: column;
 }
 
 /* --- Player Stats Area --- */
 #players-stats-container {
-    display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;
-    min-height: 150px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 15px; margin-bottom: 20px;
 }
 .player-stats {
-    border: 2px solid var(--secondary-border-color); padding: 10px; border-radius: 8px; flex-grow: 1; min-width: 250px;
+    border: 2px solid var(--secondary-border-color); padding: 10px; border-radius: 8px;
     transition: border-color 0.3s;
 }
 .player-stats h3 { margin: 0 0 10px 0; text-align: center; }
-.player-stats p { margin: 4px 0; font-size: 14px; }
-.player-stats .stat-highlight { font-weight: bold; font-size: 1.1em; }
+.player-stats .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 15px;
+}
+.player-stats p { margin: 3px 0; font-size: 13px; white-space: nowrap; }
+.player-stats .stat-highlight { font-weight: bold; }
 /* Player-specific colors */
 #player-1 .player-header, #player-1 { border-color: var(--p1-color); } #player-1 .player-header { color: var(--p1-color); }
 #player-2 .player-header, #player-2 { border-color: var(--p2-color); } #player-2 .player-header { color: var(--p2-color); }
@@ -52,11 +55,11 @@ body {
 /* --- Visual LED Area (Diamond Layout using CSS Grid) --- */
 #visual-led-area {
     display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-    justify-items: center; align-items: center; max-width: 400px; margin: 20px auto;
-    height: 300px; width: 100%;
+    justify-items: center; align-items: center; max-width: 350px; margin: 15px auto;
+    height: 250px; width: 100%;
 }
 .led-visual {
-    width: 80px; height: 80px; background-color: var(--led-bg); border: 5px solid var(--led-border);
+    width: 70px; height: 70px; background-color: var(--led-bg); border: 5px solid var(--led-border);
     border-radius: 50%; transition: background-color 0.1s ease-in-out, transform 0.1s;
 }
 #led-North { grid-area: 1 / 2 / 2 / 3; }
@@ -64,11 +67,11 @@ body {
 #led-East  { grid-area: 2 / 3 / 3 / 4; }
 #led-South { grid-area: 3 / 2 / 4 / 3; }
 
-/* Active LED state (for individual players) */
-.led-visual.active.p1 { background-color: var(--p1-color); transform: scale(1.1); }
-.led-visual.active.p2 { background-color: var(--p2-color); transform: scale(1.1); }
-.led-visual.active.p3 { background-color: var(--p3-color); transform: scale(1.1); }
-.led-visual.active.p4 { background-color: var(--p4-color); transform: scale(1.1); }
+/* MODIFIED: Universal active style */
+.led-visual.active {
+    background-color: var(--led-active-bg);
+    transform: scale(1.1);
+}
 
 /* --- Message and Hint Areas --- */
 #message-area {
@@ -79,5 +82,6 @@ body {
     font-size: 14px; color: var(--hint-text-color); text-align: center;
 }
 #hint-area p { margin: 4px 0; }
+#global-stats-area { margin-bottom: 10px; }
 #gamepad-status.connected { color: var(--gamepad-detected-color); font-weight: bold; }
 #gamepad-status.disconnected { color: var(--gamepad-not-detected-color); }
