@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LockKeyReaction Web - Gamepad Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <button id="themeToggle">☀️ Light Mode</button> <!-- Theme Toggle Button -->
+
+    <div id="game-container">
+        <div id="stats-area">
+            <p id="stat-line1"></p>
+            <p id="stat-line2"></p>
+            <p id="stat-line3"></p>
+            <p id="stat-line4"></p>
+            <p id="stat-line5"></p>
+            <p id="stat-line6"></p>
+            <p id="stat-line7"></p>
+            <p id="stat-line8"></p>
+            <p id="stat-line9"></p>
+            <p id="stat-line10"></p>
+            <p id="stat-current-led-target">Target LED: N/A</p>
+            <p id="gamepad-status">Gamepad: Not Detected</p> <!-- Gamepad Status Indicator -->
+        </div>
+
+        <div id="visual-led-area">
+            <div class="led-button-wrapper">
+                <div id="led-Num_Lock" class="led-visual" data-led-name="Num_Lock"></div>
+            </div>
+            <div class="led-button-wrapper">
+                <div id="led-Caps_Lock" class="led-visual" data-led-name="Caps_Lock"></div>
+            </div>
+            <div class="led-button-wrapper">
+                <div id="led-Scroll_Lock" class="led-visual" data-led-name="Scroll_Lock"></div>
+            </div>
+        </div>
+
+        <div id="message-area">
+            <p id="pause-message">Press SPACE to Start/Pause</p>
+            <p id="current-prompt-message"></p>
+        </div>
+
+        <div id="hint-area">
+            <p><strong>Controls:</strong> Click LEDs, use Arrow Keys (←,↓,→), or Gamepad Face Buttons.</p>
+            <p><strong>Pause:</strong> Press SPACE or the 'Start' button on your gamepad.</p>
+            <p><strong>Reset:</strong> Press 'R' to reset the game.</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
