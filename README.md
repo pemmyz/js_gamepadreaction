@@ -5,7 +5,7 @@
 # 🎮 Universal Reaction Challenge
 
 A **multiplayer reflex & reaction game** for the browser.  
-Test your speed against friends using **keyboard or gamepads** — with full statistics, streak tracking, and a dynamic reaction window that gets faster the better you perform.  
+Test your speed against friends using **keyboard and/or gamepads** — with full statistics, streak tracking, and a dynamic reaction window that gets faster the better you perform.  
 
 Built with **HTML5, CSS3, and vanilla JavaScript** — no external libraries required.
 
