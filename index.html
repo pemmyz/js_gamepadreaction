@@ -33,7 +33,30 @@
             <p><strong>Reset Game:</strong> 'R' Key</p>
             <p id="gamepad-status">Gamepad: Not Detected</p>
         </div>
+
+        <button id="helpButton">Press H - for Help</button>
     </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="hidden">
+        <div class="help-content">
+            <h2>Help & Game Modes</h2>
+            <p>Select a game mode. Changing modes will reset the current game.</p>
+            <div class="mode-selection">
+                <button id="competitive-mode-btn" class="mode-btn active">Competitive Mode</button>
+                <button id="coop-mode-btn" class="mode-btn">Co-op Mode</button>
+            </div>
+            <div id="mode-description">
+                <h3>Competitive Mode (Default)</h3>
+                <p>Be the first player to hit the correct button to score a point. The game speeds up on correct hits and slows down on misses. It's a race!</p>
+                <h3>Co-op Mode</h3>
+                <p>All active players must press the correct button before the timer runs out. If successful, a new prompt appears. If the timer runs out, anyone who didn't press gets a "Miss".</p>
+                <p><strong>Dropout:</strong> Miss 3 prompts in a row (by timeout) and you will be dropped out. You can rejoin at any time by pressing one of your buttons.</p>
+            </div>
+            <button id="close-help-btn">Close (or press H/ESC)</button>
+        </div>
+    </div>
+
 
     <script src="script.js"></script>
 </body>
