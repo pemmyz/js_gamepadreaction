@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const helpModal = document.getElementById('help-modal');
     const competitiveModeBtn = document.getElementById('competitive-mode-btn');
     const coopModeBtn = document.getElementById('coop-mode-btn');
-    const pointsModeBtn = document.getElementById('points-mode-btn'); // New
+    const pointsModeBtn = document.getElementById('points-mode-btn');
     const closeHelpBtn = document.getElementById('close-help-btn');
     const modeDescriptionEl = document.getElementById('mode-description');
 
@@ -62,10 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const statsDiv = document.createElement('div');
         statsDiv.className = 'player-stats'; statsDiv.id = `player-${id}`;
+        // *** MODIFIED HTML: Added a separate 'stat-score-line' which is hidden by default ***
         statsDiv.innerHTML = `
             <h3 class="player-header">Player ${id} (${controlSource})</h3>
             <div class="stats-grid">
-                <p><span class="stat-score-label">Correct</span>: <span class="stat-score stat-highlight">0</span></p>
+                <p class="stat-score-line" style="display: none;">Score: <span class="stat-score stat-highlight">0</span></p>
+                <p>Correct: <span class="stat-correct stat-highlight">0</span></p>
                 <p>Accuracy: <span class="stat-accuracy">N/A</span></p>
                 <p>Wrong: <span class="stat-wrong">0</span></p>
                 <p>Missed: <span class="stat-missed">0</span></p>
@@ -77,10 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         playersStatsContainer.appendChild(statsDiv);
         
-        // Explicitly map UI elements for easier access and clarity
+        // *** MODIFIED MAPPING: Added 'scoreLine' and 'correct' to the UI object ***
         player.ui = {
-            scoreLabel: statsDiv.querySelector('.stat-score-label'),
+            scoreLine: statsDiv.querySelector('.stat-score-line'),
             score: statsDiv.querySelector('.stat-score'),
+            correct: statsDiv.querySelector('.stat-correct'),
             accuracy: statsDiv.querySelector('.stat-accuracy'),
             wrong: statsDiv.querySelector('.stat-wrong'),
             missed: statsDiv.querySelector('.stat-missed'),
@@ -97,13 +100,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Game Logic ---
     function pickAndDisplayNewLed() {
         if (paused) return;
-
-        // Reset state for points mode round
         clearTimeout(pointsRound_timerId);
         pointsRound_correctPresses = [];
         pointsRound_playersAttempted = new Set();
-        
-        // In co-op mode, check if there are any active players left
         if (gameMode === 'cooperative') {
             const activePlayers = players.filter(p => p.isActive);
             if (activePlayers.length === 0 && players.length > 0) {
@@ -111,13 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentLedTarget) visualLedDOMElements[currentLedTarget].classList.remove('active');
                 currentLedTarget = null;
                 clearTimeout(ledTimerId);
-                return; // Stop the game loop
+                return;
             }
             players.forEach(p => p.coop_CorrectlyPressed = false);
         }
-        
         if (players.length === 0) return;
-
         Object.values(visualLedDOMElements).forEach(el => el.classList.remove('active'));
         totalPrompts++;
         currentLedTarget = ledNames[Math.floor(Math.random() * ledNames.length)];
@@ -128,9 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleTimeout() {
-        if (!currentLedTarget) return; // Already answered
+        if (!currentLedTarget) return;
         visualLedDOMElements[currentLedTarget].classList.remove('active');
-        
         if (gameMode === 'competitive') {
             players.forEach(p => { p.missedPrompts++; p.streak = 0; });
             globalLedTime = Math.min(2500, globalLedTime + 75);
@@ -150,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        
         currentLedTarget = null;
         pickAndDisplayNewLed();
     }
@@ -160,9 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             player.isActive = true; player.consecutiveMisses = 0;
             if (players.filter(p => p.isActive).length === 1 && !currentLedTarget) setTimeout(pickAndDisplayNewLed, 200);
         }
-        
         if (paused) return;
-
         if (gameMode === 'competitive') {
             if (!currentLedTarget) return;
             player.totalPresses++;
@@ -197,31 +190,27 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (gameMode === 'points') {
             if (pointsRound_playersAttempted.has(player.id)) return;
             if (!currentLedTarget && pointsRound_correctPresses.length === 0) return;
-
             player.totalPresses++;
             pointsRound_playersAttempted.add(player.id);
             const isCorrect = currentLedTarget === direction;
-
             if (isCorrect) {
                 player.correctPresses++;
                 player.reactionTimes.push(Date.now() - ledStartTime);
                 pointsRound_correctPresses.push(player);
                 const pointsAwarded = Math.max(1, 4 - (pointsRound_correctPresses.length - 1));
                 player.score += pointsAwarded;
-
-                if (pointsRound_correctPresses.length === 1) { // First correct press
+                if (pointsRound_correctPresses.length === 1) {
                     clearTimeout(ledTimerId);
                     visualLedDOMElements[currentLedTarget].classList.remove('active');
-                    pointsRound_timerId = setTimeout(() => { // Start scoring window
+                    pointsRound_timerId = setTimeout(() => {
                         currentLedTarget = null; pickAndDisplayNewLed();
                     }, 800);
                 }
             } else {
                 player.wrongPresses++;
             }
-            
             if (players.length > 0 && pointsRound_playersAttempted.size === players.length) {
-                clearTimeout(pointsRound_timerId); // Clear scoring window timer
+                clearTimeout(pointsRound_timerId);
                 currentLedTarget = null;
                 setTimeout(pickAndDisplayNewLed, 200);
             }
@@ -237,8 +226,15 @@ document.addEventListener('DOMContentLoaded', () => {
         else globalMessageEl.textContent = "";
 
         players.forEach(p => {
-            p.ui.scoreLabel.textContent = (gameMode === 'points') ? 'Score' : 'Correct';
-            p.ui.score.textContent = (gameMode === 'points') ? p.score : p.correctPresses;
+            // *** MODIFIED LOGIC: Show/hide score line and update values separately ***
+            if (gameMode === 'points') {
+                p.ui.scoreLine.style.display = 'block'; // Make score visible
+                p.ui.score.textContent = p.score;
+            } else {
+                p.ui.scoreLine.style.display = 'none'; // Hide score
+            }
+            
+            p.ui.correct.textContent = p.correctPresses; // Always update correct presses
             p.ui.wrong.textContent = p.wrongPresses;
             p.ui.missed.textContent = p.missedPrompts;
             p.ui.streak.textContent = (gameMode === 'competitive') ? p.streak : 'N/A';
@@ -286,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (helpModal.classList.contains('hidden')) { // Only process game inputs if help is closed
+        if (helpModal.classList.contains('hidden')) {
             if (key === ' ') return togglePause();
             const inputId = `keyboard_${key}`;
             if (assignedInputs.has(inputId)) {
@@ -308,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleGamepadInput() {
-        if (helpModal.classList.contains('hidden')) { // Only process game inputs if help is closed
+        if (helpModal.classList.contains('hidden')) {
             const polledPads = navigator.getGamepads ? navigator.getGamepads() : [];
             for (let i = 0; i < polledPads.length; i++) {
                 const pad = polledPads[i]; if (!pad) continue;
@@ -345,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetGame() {
         togglePause(false);
         clearTimeout(ledTimerId);
-        clearTimeout(pointsRound_timerId); // Clear points timer
+        clearTimeout(pointsRound_timerId);
         Object.values(visualLedDOMElements).forEach(el => el.classList.remove('active'));
         players = []; assignedInputs.clear(); playersStatsContainer.innerHTML = '';
         activeGameTime = 0; appStartTime = Date.now();
@@ -373,12 +369,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleHelpMenu() {
         const isHidden = helpModal.classList.contains('hidden');
-        if (isHidden) { // Opening menu
+        if (isHidden) {
             helpModal.classList.remove('hidden');
-            if (!paused) togglePause(true); // Pause the game
-        } else { // Closing menu
+            if (!paused) togglePause(true);
+        } else {
             helpModal.classList.add('hidden');
-            togglePause(false); // Unpause the game
+            togglePause(false);
         }
     }
 
