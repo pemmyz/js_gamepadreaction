@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const helpModal = document.getElementById('help-modal');
     const competitiveModeBtn = document.getElementById('competitive-mode-btn');
     const coopModeBtn = document.getElementById('coop-mode-btn');
+    const pointsModeBtn = document.getElementById('points-mode-btn'); // New
     const closeHelpBtn = document.getElementById('close-help-btn');
     const modeDescriptionEl = document.getElementById('mode-description');
 
@@ -25,11 +26,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Game State ---
     let players = [], gamepads = {}, lastGamepadButtonStates = {}, assignedInputs = new Set();
     let paused = false, appStartTime = Date.now(), activeGameTime = 0, lastFrameTime = Date.now();
-    let gameMode = 'competitive'; // 'competitive' or 'cooperative'
+    let gameMode = 'competitive'; // 'competitive', 'cooperative', or 'points'
     
     // Universal Prompt State
     let currentLedTarget = null, ledStartTime = null, ledTimerId = null;
     let globalLedTime = 1500, totalPrompts = 0;
+
+    // Points Mode State
+    let pointsRound_correctPresses = [];
+    let pointsRound_playersAttempted = new Set();
+    let pointsRound_timerId = null;
 
     // --- Theme Logic ---
     const setTheme = (theme) => { document.body.classList.toggle('dark-mode', theme === 'dark'); themeToggleButton.textContent = theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'; localStorage.setItem('theme', theme); };
@@ -51,13 +57,15 @@ document.addEventListener('DOMContentLoaded', () => {
             streak: 0, longestStreak: 0, missedPrompts: 0, ui: {},
             // Co-op specific state
             isActive: true, consecutiveMisses: 0, coop_CorrectlyPressed: false,
+            // Points mode state
+            score: 0,
         };
         const statsDiv = document.createElement('div');
         statsDiv.className = 'player-stats'; statsDiv.id = `player-${id}`;
         statsDiv.innerHTML = `
             <h3 class="player-header">Player ${id} (${controlSource})</h3>
             <div class="stats-grid">
-                <p>Correct: <span class="stat-correct stat-highlight">0</span></p>
+                <p><span class="stat-score-label">Correct</span>: <span class="stat-score stat-highlight">0</span></p>
                 <p>Accuracy: <span class="stat-accuracy">N/A</span></p>
                 <p>Wrong: <span class="stat-wrong">0</span></p>
                 <p>Missed: <span class="stat-missed">0</span></p>
@@ -69,11 +77,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         playersStatsContainer.appendChild(statsDiv);
         
-        player.ui = Object.fromEntries([...statsDiv.querySelectorAll('span[class^="stat-"]')].map(el => {
-            const statClass = [...el.classList].find(c => c.startsWith('stat-'));
-            const key = statClass.substring(5).replace('-streak', '').replace('-ratio','');
-            return [key, el];
-        }));
+        // Explicitly map UI elements for easier access and clarity
+        player.ui = {
+            scoreLabel: statsDiv.querySelector('.stat-score-label'),
+            score: statsDiv.querySelector('.stat-score'),
+            accuracy: statsDiv.querySelector('.stat-accuracy'),
+            wrong: statsDiv.querySelector('.stat-wrong'),
+            missed: statsDiv.querySelector('.stat-missed'),
+            streak: statsDiv.querySelector('.stat-streak'),
+            max: statsDiv.querySelector('.stat-max-streak'),
+            prompt: statsDiv.querySelector('.stat-prompt-ratio'),
+            avg: statsDiv.querySelector('.stat-avg'),
+            fastest: statsDiv.querySelector('.stat-fastest'),
+            slowest: statsDiv.querySelector('.stat-slowest'),
+        };
         return player;
     }
 
@@ -81,6 +98,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function pickAndDisplayNewLed() {
         if (paused) return;
 
+        // Reset state for points mode round
+        clearTimeout(pointsRound_timerId);
+        pointsRound_correctPresses = [];
+        pointsRound_playersAttempted = new Set();
+        
         // In co-op mode, check if there are any active players left
         if (gameMode === 'cooperative') {
             const activePlayers = players.filter(p => p.isActive);
@@ -111,20 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (gameMode === 'competitive') {
             players.forEach(p => { p.missedPrompts++; p.streak = 0; });
-            globalLedTime = Math.min(2500, globalLedTime + 75); // Make it easier after a group miss
+            globalLedTime = Math.min(2500, globalLedTime + 75);
         } else if (gameMode === 'cooperative') {
             players.forEach(p => {
                 if (p.isActive && !p.coop_CorrectlyPressed) {
-                    p.missedPrompts++;
-                    p.consecutiveMisses++;
-                    if (p.consecutiveMisses >= COOP_MISSES_TO_DROPOUT) {
-                        p.isActive = false;
-                    }
+                    p.missedPrompts++; p.consecutiveMisses++;
+                    if (p.consecutiveMisses >= COOP_MISSES_TO_DROPOUT) p.isActive = false;
                 } else if (!p.isActive) {
-                    p.missedPrompts++; // Inactive players still accumulate misses
+                    p.missedPrompts++;
                 }
             });
-            // Don't adjust time drastically in co-op, keep it consistent
+        } else if (gameMode === 'points') {
+            players.forEach(p => {
+                if (!pointsRound_playersAttempted.has(p.id)) {
+                    p.missedPrompts++;
+                }
+            });
         }
         
         currentLedTarget = null;
@@ -132,61 +156,74 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function processPlayerInput(player, direction) {
-        // Handle rejoining if inactive (applies mainly to co-op)
-        if (!player.isActive) {
-            player.isActive = true;
-            player.consecutiveMisses = 0;
-            // If rejoining wakes up the game
-            if (players.filter(p => p.isActive).length === 1 && !currentLedTarget) {
-                 setTimeout(pickAndDisplayNewLed, 200);
-            }
+        if (!player.isActive && gameMode !== 'points') {
+            player.isActive = true; player.consecutiveMisses = 0;
+            if (players.filter(p => p.isActive).length === 1 && !currentLedTarget) setTimeout(pickAndDisplayNewLed, 200);
         }
         
-        if (paused || !currentLedTarget) return;
-
-        player.totalPresses++;
+        if (paused) return;
 
         if (gameMode === 'competitive') {
-            // --- COMPETITIVE LOGIC ---
+            if (!currentLedTarget) return;
+            player.totalPresses++;
             if (currentLedTarget === direction) {
                 const reaction = Date.now() - ledStartTime;
-                player.reactionTimes.push(reaction);
-                player.correctPresses++;
-                player.streak++;
+                player.reactionTimes.push(reaction); player.correctPresses++; player.streak++;
                 if (player.streak > player.longestStreak) player.longestStreak = player.streak;
                 globalLedTime = Math.max(250, globalLedTime - 30);
                 visualLedDOMElements[currentLedTarget].classList.remove('active');
-                currentLedTarget = null;
-                clearTimeout(ledTimerId);
+                currentLedTarget = null; clearTimeout(ledTimerId);
                 setTimeout(pickAndDisplayNewLed, 200);
             } else {
-                player.wrongPresses++;
-                player.streak = 0;
+                player.wrongPresses++; player.streak = 0;
                 globalLedTime = Math.min(2500, globalLedTime + 50);
             }
         } else if (gameMode === 'cooperative') {
-            // --- CO-OP LOGIC ---
-            if (player.coop_CorrectlyPressed) return; // Already got it this round
-
+            if (!currentLedTarget || player.coop_CorrectlyPressed) return;
+            player.totalPresses++;
             if (currentLedTarget === direction) {
-                const reaction = Date.now() - ledStartTime;
-                player.reactionTimes.push(reaction); // Still log individual times
-                player.correctPresses++;
-                player.consecutiveMisses = 0; // Reset consecutive misses on a correct press
-                player.coop_CorrectlyPressed = true;
-                
-                // Check if all *active* players have now pressed the correct button
+                player.reactionTimes.push(Date.now() - ledStartTime);
+                player.correctPresses++; player.consecutiveMisses = 0; player.coop_CorrectlyPressed = true;
                 const activePlayers = players.filter(p => p.isActive);
                 const allActivePressed = activePlayers.every(p => p.coop_CorrectlyPressed);
-                
                 if (allActivePressed) {
                     visualLedDOMElements[currentLedTarget].classList.remove('active');
-                    currentLedTarget = null;
-                    clearTimeout(ledTimerId);
+                    currentLedTarget = null; clearTimeout(ledTimerId);
                     setTimeout(pickAndDisplayNewLed, 200);
                 }
             } else {
-                player.wrongPresses++; // Wrong presses are just logged, no other penalty
+                player.wrongPresses++;
+            }
+        } else if (gameMode === 'points') {
+            if (pointsRound_playersAttempted.has(player.id)) return;
+            if (!currentLedTarget && pointsRound_correctPresses.length === 0) return;
+
+            player.totalPresses++;
+            pointsRound_playersAttempted.add(player.id);
+            const isCorrect = currentLedTarget === direction;
+
+            if (isCorrect) {
+                player.correctPresses++;
+                player.reactionTimes.push(Date.now() - ledStartTime);
+                pointsRound_correctPresses.push(player);
+                const pointsAwarded = Math.max(1, 4 - (pointsRound_correctPresses.length - 1));
+                player.score += pointsAwarded;
+
+                if (pointsRound_correctPresses.length === 1) { // First correct press
+                    clearTimeout(ledTimerId);
+                    visualLedDOMElements[currentLedTarget].classList.remove('active');
+                    pointsRound_timerId = setTimeout(() => { // Start scoring window
+                        currentLedTarget = null; pickAndDisplayNewLed();
+                    }, 800);
+                }
+            } else {
+                player.wrongPresses++;
+            }
+            
+            if (players.length > 0 && pointsRound_playersAttempted.size === players.length) {
+                clearTimeout(pointsRound_timerId); // Clear scoring window timer
+                currentLedTarget = null;
+                setTimeout(pickAndDisplayNewLed, 200);
             }
         }
     }
@@ -200,7 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
         else globalMessageEl.textContent = "";
 
         players.forEach(p => {
-            p.ui.correct.textContent = p.correctPresses;
+            p.ui.scoreLabel.textContent = (gameMode === 'points') ? 'Score' : 'Correct';
+            p.ui.score.textContent = (gameMode === 'points') ? p.score : p.correctPresses;
             p.ui.wrong.textContent = p.wrongPresses;
             p.ui.missed.textContent = p.missedPrompts;
             p.ui.streak.textContent = (gameMode === 'competitive') ? p.streak : 'N/A';
@@ -305,8 +343,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetGame() {
-        togglePause(false); // Ensure game is not paused
+        togglePause(false);
         clearTimeout(ledTimerId);
+        clearTimeout(pointsRound_timerId); // Clear points timer
         Object.values(visualLedDOMElements).forEach(el => el.classList.remove('active'));
         players = []; assignedInputs.clear(); playersStatsContainer.innerHTML = '';
         activeGameTime = 0; appStartTime = Date.now();
@@ -319,9 +358,16 @@ document.addEventListener('DOMContentLoaded', () => {
         gameMode = mode;
         competitiveModeBtn.classList.toggle('active', mode === 'competitive');
         coopModeBtn.classList.toggle('active', mode === 'cooperative');
+        pointsModeBtn.classList.toggle('active', mode === 'points');
+
         const competitiveDesc = `<h3>Competitive Mode (Default)</h3><p>Be the first player to hit the correct button to score a point. The game speeds up on correct hits and slows down on misses. It's a race!</p>`;
         const coopDesc = `<h3>Co-op Mode</h3><p>All active players must press the correct button before the timer runs out. If successful, a new prompt appears. If the timer runs out, anyone who didn't press gets a "Miss".</p><p><strong>Dropout:</strong> Miss ${COOP_MISSES_TO_DROPOUT} prompts in a row (by timeout) and you will be dropped out. You can rejoin at any time by pressing one of your buttons.</p>`;
-        modeDescriptionEl.innerHTML = (mode === 'competitive') ? competitiveDesc : coopDesc;
+        const pointsDesc = `<h3>Points Mode</h3><p>Be quick to score! The first player to hit the correct button gets 4 points. The second gets 3, third gets 2, and fourth gets 1. Wrong presses get 0 points for the round. The round ends shortly after the first correct press.</p>`;
+
+        if (mode === 'competitive') modeDescriptionEl.innerHTML = competitiveDesc;
+        else if (mode === 'cooperative') modeDescriptionEl.innerHTML = coopDesc;
+        else if (mode === 'points') modeDescriptionEl.innerHTML = pointsDesc;
+        
         resetGame();
     }
 
@@ -358,6 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeHelpBtn.addEventListener('click', toggleHelpMenu);
     competitiveModeBtn.addEventListener('click', () => setGameMode('competitive'));
     coopModeBtn.addEventListener('click', () => setGameMode('cooperative'));
+    pointsModeBtn.addEventListener('click', () => setGameMode('points'));
 
     updateGamepadStatus(); updateUI(); gameLoop();
 });
