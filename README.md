@@ -2,6 +2,10 @@
 
 ## Play it now: https://pemmyz.github.io/js_gamepadreaction/
 
+## Screenshots
+![Game 1](screenshots/game_1.png)
+
+
 # 🎮 Universal Reaction Challenge
 
 A **multiplayer reflex & reaction game** for the browser.  
